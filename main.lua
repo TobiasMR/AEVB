@@ -14,16 +14,35 @@ require 'Sampler'
 --For loading data files
 require 'load'
 
-local continuous = false
+cmd = torch.CmdLine()
+cmd:text()
+cmd:text()
+cmd:text('Training a Variational Autoencoder')
+cmd:text()
+cmd:text('Options')
+cmd:option('-seed',123,'initial random seed')
+cmd:option('-dataset','mnist','mnist|frey')
+cmd:option('-hidden_layer_size', 400, 'size of the hidden layer of the encoder and decoder')
+cmd:option('-latent_space_size', 20, 'dimensionality of the latent space')
+cmd:option('-batch_size', 100, 'batch size')
+cmd:text()
+
+-- parse input params
+params = cmd:parse(arg)
+
+local continuous
+if params.dataset == "mnist" then
+    continuous = false
+else
+    continuous = true
+end
 data = load(continuous)
 
 local input_size = data.train:size(2)
-local latent_variable_size = 20
-local hidden_layer_size = 400
+local latent_variable_size = params.latent_space_size
+local hidden_layer_size = params.hidden_layer_size
 
-local batch_size = 100
-
-torch.manualSeed(1)
+torch.manualSeed(params.seed)
 
 local encoder = VAE.get_encoder(input_size, hidden_layer_size, latent_variable_size)
 local decoder = VAE.get_decoder(input_size, hidden_layer_size, latent_variable_size, continuous)
@@ -70,9 +89,9 @@ while true do
     local shuffle = torch.randperm(data.train:size(1))
 
     -- This batch creation is inspired by szagoruyko CIFAR example.
-    local indices = torch.randperm(data.train:size(1)):long():split(batch_size)
+    local indices = torch.randperm(data.train:size(1)):long():split(params.batch_size)
     indices[#indices] = nil
-    local N = #indices * batch_size
+    local N = #indices * params.batch_size
 
     local tic = torch.tic()
     for t,v in ipairs(indices) do
